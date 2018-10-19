@@ -1,0 +1,135 @@
+CREATE PROCEDURE poptemptables
+
+@MessageId INT,
+@DeviceId NVARCHAR(100),
+@Placement NVARCHAR(50),
+@SensorType NVARCHAR(50),
+@Location NVARCHAR(100),
+@Country NVARCHAR(100),
+@Latitude FLOAT,
+@Longitude FLOAT,
+@Temperature FLOAT,
+@Humidity FLOAT,
+@temperatureAlert NVARCHAR(50),
+@Messagetime DATETIME,
+@RainProbability FLOAT,
+@Rain NVARCHAR(50)
+
+AS
+	SET NOCOUNT ON
+
+BEGIN	 
+	IF NOT EXISTS(SELECT 1 FROM Country WHERE CountryName = @Country)
+	BEGIN
+	INSERT INTO dbo.Country
+		(
+			CountryName
+		)
+	VALUES
+		(
+			@Country
+		) 
+	END
+END
+
+BEGIN
+	IF NOT EXISTS(SELECT 1 FROM SensorType WHERE SensorType = @SensorType)
+	BEGIN	
+
+	INSERT INTO dbo.SensorType
+		(
+			SensorType
+		)
+	VALUES
+		(
+		@SensorType
+		)
+	END
+END
+		
+BEGIN
+	IF NOT EXISTS(SELECT 1 FROM Placement WHERE PlacementLocation = @Placement)
+	BEGIN
+	INSERT INTO dbo.Placement
+		(
+			PlacementLocation
+		)
+	VALUES
+		(
+			@Placement
+		)
+	END
+END
+	
+BEGIN
+DECLARE @CountryId INT
+	IF NOT EXISTS(SELECT 1 FROM City WHERE CityName = @Location)
+	BEGIN
+	SET @CountryID = (SELECT CountryId FROM Country WHERE @Country = CountryName)
+	INSERT INTO dbo.City
+		(
+			CountryID,
+			CityName
+		)
+	VALUES
+		(
+			@CountryId,
+			@Location
+		)		
+	END
+END
+
+BEGIN
+	DECLARE @CityID INT
+	DECLARE @PlacementID INT
+	DECLARE @SensorTypeID INT
+	IF NOT EXISTS(SELECT 1 FROM Devices WHERE DeviceId = @DeviceId)
+	BEGIN
+	SET @CityID = (SELECT CityID FROM City WHERE CityName = @Location)
+	SET @PlacementID = (SELECT PlacementId FROM Placement WHERE PlacementLocation = @Placement)
+	SET @SensorTypeID = (SELECT SensorTypeID FROM SensorType WHERE SensorType = @SensorType)
+	INSERT INTO dbo.Devices
+		(
+			DeviceId,
+			CityID,
+			PlacementID,
+			SensorTypeID,
+			Latitude,
+			Longitude
+		)
+	VALUES
+		(
+			@DeviceId,
+			@CityID,
+			@PlacementID,
+			@SensorTypeID,
+			@Latitude,
+			@Longitude
+		)
+	END
+END
+
+	
+BEGIN
+	SET @DeviceId = (SELECT DeviceId FROM Devices WHERE DeviceId = @DeviceId)
+	INSERT INTO dbo.WeatherData
+		(
+			DeviceId,
+			MessageTime,
+			MessageId,
+			Temperature,
+			Humidity,
+			RainProbability,
+			Rain
+		)
+	VALUES
+		(
+			@DeviceId,
+			@Messagetime,
+			@MessageId,
+			@Temperature,
+			@Humidity,
+			@RainProbability,
+			@Rain
+		)
+END
